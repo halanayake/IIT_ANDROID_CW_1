@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Equal Equations</string>
+    <string name="new_game">New Game</string>
+    <string name="about">about</string>
+
+    <string name="author_name">Gayath Halanayake</string>
+    <string name="author_id">2019137 | w1761056</string>
+    <string name="acknowledgement">
+        I confirm that I understand what plagiarism is and have read and
+        understood the section on Assessment Offences in the Essential Information for Students.
+        The work that I have submitted is entirely my own. Any work from other authors is duly
+        referenced and acknowledged.
+    </string>
 </resources>
