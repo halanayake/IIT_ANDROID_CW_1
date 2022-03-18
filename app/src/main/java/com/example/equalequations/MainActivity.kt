@@ -1,5 +1,6 @@
 package com.example.equalequations
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.*
 import android.widget.LinearLayout
@@ -15,6 +16,11 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    fun startGame(view: View) {
+        val intent = Intent(this, GameActivity::class.java)
+        startActivity(intent)
+    }
+
     fun openAboutPopUp(view: View) {
 
         // inflate the layout of the popup window
@@ -28,12 +34,12 @@ class MainActivity : AppCompatActivity() {
         val popupWindow = PopupWindow(popupView, width, height, focusable)
 
         // show the popup window
-        // which view you pass in doesn't matter, it is only used for the window tolken
+        // which view you pass in doesn't matter, it is only used for the window token
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
 
         // dismiss the popup window when touched
         popupView.setOnTouchListener { v, event ->
-            when (event?.action) {
+            when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     v.performClick()
                 }

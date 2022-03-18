@@ -11,4 +11,8 @@
         The work that I have submitted is entirely my own. Any work from other authors is duly
         referenced and acknowledged.
     </string>
+
+    <string name="greater">GREATER</string>
+    <string name="equal">==</string>
+    <string name="less">LESS</string>
 </resources>
