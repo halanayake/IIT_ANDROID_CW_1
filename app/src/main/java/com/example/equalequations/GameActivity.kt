@@ -23,8 +23,8 @@ class GameActivity : AppCompatActivity() {
         val equation = generateEquation()
         textView.text = equation.equation
         Toast.makeText(this, "LEFT - " + equation.total, Toast.LENGTH_SHORT).show()
+        Log.e("GHX", "--------------------------------------------")
     }
-
     private fun generateRightEquation() {
         val textView: TextView = findViewById(R.id.rightEquation)
         val equation = generateEquation()
@@ -77,15 +77,31 @@ class GameActivity : AppCompatActivity() {
             }
         }
         if ('-' in selectedOperators) {
+            Log.e("GHX", "Before Sub - $selectedNumbers || $selectedOperators")
             sortSubtraction(selectedNumbers, selectedOperators)
+            Log.e("GHX", "After Sub - $selectedNumbers || $selectedOperators")
         }
         if ('/' in selectedOperators) {
+            Log.e("GHX", "Before Div - $selectedNumbers || $selectedOperators")
             sortDivision(selectedNumbers, selectedOperators)
+            Log.e("GHX", "After Div - $selectedNumbers || $selectedOperators")
         }
+
+        Log.e("GHX", "Final - $selectedNumbers || $selectedOperators")
+
+        for ((index, num) in selectedNumbers.withIndex()) {
+            equation += if (index != selectedNumbers.lastIndex) {
+                "$num${selectedOperators[index]}"
+            } else {
+                "$num"
+            }
+        }
+
         return DataObj(equation, total)
     }
 
     private fun sortSubtraction(numbers: MutableList<Int>, operators: MutableList<Char>) {
+        Log.e("GHX", ">>In SUb - $numbers || $operators")
         val maxPos = numbers.indexOf(numbers.maxOrNull()!!)
         val opIndex = operators.indexOf('-')
         val tempVal1 = numbers[opIndex]
@@ -100,27 +116,66 @@ class GameActivity : AppCompatActivity() {
         }
         numbers[opIndex+1] = numbers[secondMaxPos]
         numbers[secondMaxPos] = tempVal2
+        Log.e("GHX", ">>Out Sub - $numbers || $operators")
     }
 
     private fun sortDivision(numbers: MutableList<Int>, operators: MutableList<Char>) {
-        Log.e("GHX", "A - $numbers | $operators")
+        Log.e("GHX", ">>In Div - $numbers || $operators")
         val min: Int = numbers.minOrNull()!!
         val opIndex = operators.indexOf('/')
         val tempVal = numbers[opIndex+1]
         numbers[numbers.indexOf(min)] = tempVal
         numbers[opIndex+1] = min
-        Log.e("GHX", "B - $numbers | $operators")
-        val leftResult = solveEquation(numbers.subList(0, opIndex+1), operators.subList(0, opIndex))
+        val validOperators = operators.subList(0, opIndex)
+        val validNumbers = numbers.subList(0, opIndex+1)
+        val leftResult = solveEquation(validNumbers, validOperators)
         val mod = leftResult % min
         if (mod == 0) {
             return
+        } else if (validOperators.contains('*')) {
+            val mulIndex = operators.indexOf('*')
+            operators.removeAt(mulIndex)
+            val removedNum = numbers.removeAt(mulIndex)
+            operators.add('*')
+            numbers.add(removedNum)
+            if ('-' in operators) {
+                sortSubtraction(numbers, operators)
+            }
+            sortDivision(numbers, operators)
+        } else {
+            while (true) {
+                var found = false
+                for ((index, num) in validNumbers.withIndex()) {
+                    if ((num - mod) >= 1 && (validOperators.isEmpty() || validOperators[index] != '-')) {
+                        numbers[numbers.indexOf(num)] = (num - mod)
+                        found = true
+                        break
+                    } else if ((num + (min - mod)) <= 20 && (index == 0
+                                || (validOperators.isEmpty() || validOperators[index-1] != '-'))) {
+                        numbers[numbers.indexOf(num)] = (num + (min - mod))
+                        found = true
+                        break
+                    }
+                }
+                if (found) {
+                    break
+                } else {
+                    val subtractPos = validOperators.indexOf('-')
+                    if (subtractPos != -1) {
+                        numbers[subtractPos] = (10..20).random()
+                        numbers[subtractPos+1] = (1..numbers[subtractPos]).random()
+                    } else {
+                        for ((index, num) in numbers.withIndex()) {
+                            numbers[index] = (1..20).random()
+                        }
+                    }
+                }
+            }
         }
-
-        Log.e("GHX", "MOD - $leftResult | $mod")
+        Log.e("GHX", ">>Out Div - $numbers || $operators")
     }
 
     private fun solveEquation(numbers: MutableList<Int>, operators: MutableList<Char>): Int {
-        Log.e("GHX", "E - $numbers | $operators")
         var total = 0
         for ((count, number) in numbers.withIndex()) {
             if (count == 0) {
