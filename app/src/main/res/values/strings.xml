@@ -15,4 +15,9 @@
     <string name="greater">GREATER</string>
     <string name="equal">==</string>
     <string name="less">LESS</string>
+
+    <string name="correct">CORRECT</string>
+    <string name="incorrect">INCORRECT</string>
+    <string name="correct_answer">correct answer is</string>
+    <string name="equals">equals</string>
 </resources>
