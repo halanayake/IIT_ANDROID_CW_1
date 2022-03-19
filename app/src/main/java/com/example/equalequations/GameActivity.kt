@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import kotlin.math.roundToInt
 
 
 class GameActivity : AppCompatActivity() {
@@ -66,9 +67,6 @@ class GameActivity : AppCompatActivity() {
         var selectedNumbers = mutableListOf<Int>()
         var selectedOperators = mutableListOf<Char>()
 
-        var equation = ""
-        var total = 0
-
         val termCount = (1..4).random()
         for (term in (1..termCount)) {
             selectedNumbers.add((1..20).random())
@@ -89,14 +87,16 @@ class GameActivity : AppCompatActivity() {
 
         Log.e("GHX", "Final - $selectedNumbers || $selectedOperators")
 
-        for ((index, num) in selectedNumbers.withIndex()) {
-            equation += if (index != selectedNumbers.lastIndex) {
-                "$num${selectedOperators[index]}"
+        var equation = ""
+        for ((index, op) in operators.withIndex()) {
+            // TODO fix this
+            if (selectedNumbers.size > 1) {
+                equation += "${selectedNumbers[index]}$op${selectedNumbers[index+1]}"
             } else {
-                "$num"
+                equation += "${selectedNumbers[index]}"
             }
         }
-
+        val total = solveEquation(selectedNumbers, selectedOperators)
         return DataObj(equation, total)
     }
 
@@ -146,12 +146,12 @@ class GameActivity : AppCompatActivity() {
             while (true) {
                 var found = false
                 for ((index, num) in validNumbers.withIndex()) {
-                    if ((num - mod) >= 1 && (validOperators.isEmpty() || validOperators[index] != '-')) {
+                    if ((num - mod) >= 1 && (validOperators.size != index && validOperators[index] != '-')) {
                         numbers[numbers.indexOf(num)] = (num - mod)
                         found = true
                         break
                     } else if ((num + (min - mod)) <= 20 && (index == 0
-                                || (validOperators.isEmpty() || validOperators[index-1] != '-'))) {
+                                || (validOperators.size != index && validOperators[index-1] != '-'))) {
                         numbers[numbers.indexOf(num)] = (num + (min - mod))
                         found = true
                         break
@@ -191,4 +191,27 @@ class GameActivity : AppCompatActivity() {
         }
         return total
     }
+
+    /*private fun testSolveEquation(numbers: MutableList<Int>, operators: MutableList<Char>): Int {
+        var total = 0.0
+        for ((count, number) in numbers.withIndex()) {
+            if (count == 0) {
+                total += number
+            } else {
+                when (operators[count-1]) {
+                    '+' -> total += number
+                    '-' -> total -= number
+                    '*' -> total *= number
+                    '/' -> total /= number
+                }
+            }
+        }
+        val intTot = total.toInt()
+        if ((total-intTot) != 0.0) {
+            Log.e("TEST", ">>>>> TEST FAIL - $numbers || $operators -> ${total-intTot}")
+        } else {
+            Log.w("TEST", ">>>>> TEST PASS - $numbers || $operators -> ${total-intTot}")
+        }
+        return 0
+    }*/
 }
