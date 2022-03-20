@@ -1,6 +1,9 @@
 package com.example.equalequations
 
+import android.content.Intent
+import android.icu.util.Calendar
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -16,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 class GameActivity : AppCompatActivity() {
 
+    // Object to get string equation and numerical total
     class DataObj(val equation: String, var total: Int)
 
     private var leftEquation:DataObj? = null
@@ -25,35 +29,61 @@ class GameActivity : AppCompatActivity() {
     private val leftValConst = "left_val"
     private val rightEqConst = "right_eq"
     private val rightValConst = "right_val"
+    private val targetTimeConst = "target_time"
+    private val correctCountConst = "correct_count"
+    private val correctTotConst = "correct_tot"
+    private val incorrectTotConst = "incorrect_tot"
 
+    private var targetTime: Long? = null
+    private var timeLeft: Long? = null
+    private var timer: CountDownTimer? = null
+    private var correctCount: Int = 0
+    private var totCorrect: Int = 0
+    private var totIncorrect: Int = 0
+
+    // Life cycle methods
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
+        // Generate and assign equations to textViews savedState is passed to load previous values
         generateAndAssignEquations(savedInstanceState)
+        val tempTargetTime = savedInstanceState?.getLong(targetTimeConst)
+        if (savedInstanceState != null) {
+            correctCount = savedInstanceState.getInt(correctCountConst)
+            totCorrect = savedInstanceState.getInt(correctTotConst)
+            totIncorrect = savedInstanceState.getInt(incorrectTotConst)
+        }
+        // Target time is a future time in milliseconds
+        targetTime = if (tempTargetTime != null) {
+            tempTargetTime
+        } else {
+            val currentTimeNow = Calendar.getInstance()
+            currentTimeNow.add(Calendar.SECOND, 50)
+            currentTimeNow.timeInMillis
+        }
+        // Time left is calculated by subtracting current time from future time.
+        // This way timer will not freeze when activity gets paused
+        timeLeft = targetTime!! - Calendar.getInstance().timeInMillis
+        timer = object : CountDownTimer(timeLeft!!, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                timeLeft = millisUntilFinished
+                findViewById<TextView>(R.id.time).text = createTimeString(millisUntilFinished)
+            }
+            override fun onFinish() {
+                showResults()
+            }
+        }.start()
     }
 
-    private fun generateAndAssignEquations(savedInstanceState: Bundle?) {
-        val tempLeftEq = savedInstanceState?.getString(leftEqConst)
-        val tempLeftVal = savedInstanceState?.getInt(leftValConst)
-        leftEquation = if (tempLeftEq != null && tempLeftVal != null) {
-            DataObj(tempLeftEq, tempLeftVal)
-        } else {
-            generateEquation()
-        }
-        val textViewLeft: TextView = findViewById(R.id.leftEquation)
-        textViewLeft.text = leftEquation!!.equation
-
-        val tempRightEq = savedInstanceState?.getString(rightEqConst)
-        val tempRightVal = savedInstanceState?.getInt(rightValConst)
-        rightEquation = if (tempRightEq != null && tempRightVal != null) {
-            DataObj(tempRightEq, tempRightVal)
-        } else {
-            generateEquation()
-        }
-        val textViewRight: TextView = findViewById(R.id.rightEquation)
-        textViewRight.text = rightEquation!!.equation
+    override fun onPause() {
+        super.onPause()
+        // Cancel the timer on pause. To avoid multiple timers when activity resumes
+        timer?.cancel()
     }
 
+    /**
+     * Save attributes that needs to be persisted through activity lifecycles
+     */
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
         if (leftEquation != null) {
@@ -64,22 +94,76 @@ class GameActivity : AppCompatActivity() {
             state.putString(rightEqConst, rightEquation!!.equation)
             state.putInt(rightValConst, rightEquation!!.total)
         }
+        if (targetTime != null) {
+            state.putLong(targetTimeConst, targetTime!!)
+        }
+        state.putInt(correctCountConst, correctCount)
+        state.putInt(correctTotConst, totCorrect)
+        state.putInt(incorrectTotConst, totIncorrect)
     }
 
+    /**
+     * Create a string with remaining time which is displayed in the UI
+     *
+     * @param time time to be displayed in milliseconds
+     * @return formatted time
+     */
+    private fun createTimeString(time: Long): String {
+        val minutes = (time / 1000 / 60).toString()
+        val seconds = (time / 1000 % 60).toString()
+        return "${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}"
+    }
+
+    /**
+     * Generate or load equations and assign them to textViews
+     *
+     * @param savedInstanceState to load saved values (if available)
+     */
+    private fun generateAndAssignEquations(savedInstanceState: Bundle?) {
+        val tempLeftEq = savedInstanceState?.getString(leftEqConst)
+        val tempLeftVal = savedInstanceState?.getInt(leftValConst)
+        leftEquation = if (tempLeftEq != null && tempLeftVal != null) {
+            DataObj(tempLeftEq, tempLeftVal)
+        } else {
+            generateEquation()
+        }
+        findViewById<TextView>(R.id.leftEquation).text = leftEquation!!.equation
+
+        val tempRightEq = savedInstanceState?.getString(rightEqConst)
+        val tempRightVal = savedInstanceState?.getInt(rightValConst)
+        rightEquation = if (tempRightEq != null && tempRightVal != null) {
+            DataObj(tempRightEq, tempRightVal)
+        } else {
+            generateEquation()
+        }
+        findViewById<TextView>(R.id.rightEquation).text = rightEquation!!.equation
+    }
+
+    /**
+     * Method used to generate both equations
+     *
+     * @return dataObj object with string equation and numeric result
+     */
     private fun generateEquation(): DataObj {
         val operators = mutableListOf('+', '-', '*', '/')
         val selectedNumbers = mutableListOf<Int>()
         val selectedOperators = mutableListOf<Char>()
+        // Number of terms is determined first
         val termCount = (1..4).random()
         for (term in (1..termCount)) {
+            // generate random numbers
             selectedNumbers.add((1..20).random())
             if (term != termCount) {
+                // Pick random operators (removeAt is used to avoid repetition)
                 selectedOperators.add(operators.removeAt((0 until operators.size).random()))
             }
         }
+        // selected numbers and operators are passed to make division without remainders
         fixEquation(selectedNumbers, selectedOperators)
         var equation = ""
+        // selected numbers and operators are passed to make total less than 100
         val total = solveEquationAndResolve(selectedNumbers, selectedOperators)
+        // equation string is made by adding brackets and combining with operators
         for ((index, num) in selectedNumbers.withIndex()) {
             equation += num
             if (index != 0 && index != selectedNumbers.lastIndex) {
@@ -92,6 +176,12 @@ class GameActivity : AppCompatActivity() {
         return DataObj(equation, total)
     }
 
+    /**
+     * Call sub methods if given operators exist in the list
+     *
+     * @param selectedNumbers selected numbers
+     * @param selectedOperators selected operators
+     */
     private fun fixEquation(selectedNumbers: MutableList<Int>, selectedOperators: MutableList<Char>) {
         if ('-' in selectedOperators) {
             fixSubtraction(selectedNumbers, selectedOperators)
@@ -101,6 +191,13 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Max number and second max number in the number list is picked and placed on left and right
+     * of the subtraction operator to avoid negative results. (Get called only if '-' is present)
+     *
+     * @param numbers selected numbers
+     * @param operators selected operators
+     */
     private fun fixSubtraction(numbers: MutableList<Int>, operators: MutableList<Char>) {
         val maxPos = numbers.indexOf(numbers.maxOrNull()!!)
         val opIndex = operators.indexOf('-')
@@ -118,19 +215,29 @@ class GameActivity : AppCompatActivity() {
         numbers[secondMaxPos] = tempVal2
     }
 
+    /**
+     * Smallest number in the list is picked and place it as the divider. Remaining values are
+     * adjusted to make the division without remainders
+     *
+     * @param numbers selected numbers
+     * @param operators selected operators
+     */
     private fun fixDivision(numbers: MutableList<Int>, operators: MutableList<Char>) {
         val min: Int = numbers.minOrNull()!!
         val opIndex = operators.indexOf('/')
         val tempVal = numbers[opIndex+1]
         numbers[numbers.indexOf(min)] = tempVal
         numbers[opIndex+1] = min
+        // Only left side operators and numbers are considered
         val validOperators = operators.subList(0, opIndex)
         val validNumbers = numbers.subList(0, opIndex+1)
         val leftResult = solveEquation(validNumbers, validOperators)
         val mod = leftResult % min
+        // if remainder is 0 no calculations are performed
         if (mod == 0) {
             return
         } else if (validOperators.contains('*')) {
+            // if '*' is present on left. It is moved to equation's end with it's corresponding value
             val mulIndex = operators.indexOf('*')
             operators.removeAt(mulIndex)
             val removedNum = numbers.removeAt(mulIndex)
@@ -169,6 +276,13 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * solve the equation without manipulating  it and return the result
+     *
+     * @param numbers selected numbers
+     * @param operators selected operators
+     * @return solution of the equation
+     */
     private fun solveEquation(numbers: MutableList<Int>, operators: MutableList<Char>): Int {
         var total = 0
         for ((count, number) in numbers.withIndex()) {
@@ -186,6 +300,13 @@ class GameActivity : AppCompatActivity() {
         return total
     }
 
+    /**
+     * Solve the equation and do manipulations if result of sub expressions is greater than 100
+     *
+     * @param numbers selected numbers
+     * @param operators selected operators
+     * @return solution of the equation
+     */
     private fun solveEquationAndResolve(numbers: MutableList<Int>, operators: MutableList<Char>): Int {
         var total = 0
         var flag: Boolean
@@ -208,6 +329,7 @@ class GameActivity : AppCompatActivity() {
                         }
                         '-' -> total -= number
                         '*' -> {
+                            Log.e("GHX", "$total | $number -|- $numbers || $operators")
                             if ((total * number) > 100) {
                                 if ((100/total) == 0) {
                                     numbers[numbers.indexOf(number)] =  1
@@ -231,15 +353,22 @@ class GameActivity : AppCompatActivity() {
         return total
     }
 
+    /**
+     * Called when tapped on 'GREATER' button
+     */
     fun onClickGreater(view: View) {
         if (leftEquation!!.total > rightEquation!!.total) {
             showCorrect(view)
         } else {
             showIncorrect(view)
         }
+        // Generate a new equation to be displayed
         generateAndAssignEquations(null)
     }
 
+    /**
+     * Called when tapped on '==' button
+     */
     fun onClickEqual(view: View) {
         if (leftEquation!!.total == rightEquation!!.total) {
             showCorrect(view)
@@ -249,6 +378,9 @@ class GameActivity : AppCompatActivity() {
         generateAndAssignEquations(null)
     }
 
+    /**
+     * Called when tapped on 'LESS' button
+     */
     fun onClickLess(view: View) {
         if (leftEquation!!.total < rightEquation!!.total) {
             showCorrect(view)
@@ -258,26 +390,50 @@ class GameActivity : AppCompatActivity() {
         generateAndAssignEquations(null)
     }
 
+    /**
+     * Create and show the 'Correct' popup. Then dismiss it after 2 seconds
+     *
+     * @param view view from button click which is used to attach the popupWindow
+     */
     private fun showCorrect(view: View) {
+        correctCount += 1
+        // Stop the current timer and create a new one with extended time if the user scores 5
+        // correct answers
+        if (correctCount >= 5) {
+            targetTime = targetTime?.plus(10000)
+            timeLeft = targetTime!! - Calendar.getInstance().timeInMillis
+            timer?.cancel()
+            timer = object : CountDownTimer(timeLeft!!, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    timeLeft = millisUntilFinished
+                    findViewById<TextView>(R.id.time).text = createTimeString(millisUntilFinished)
+                }
+                override fun onFinish() {
+                    showResults()
+                }
+            }.start()
+            correctCount = 0
+        }
+        totCorrect += 1
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val popupView: View = inflater.inflate(R.layout.correct_feedback, null)
         val width = LinearLayout.LayoutParams.MATCH_PARENT
         val height = LinearLayout.LayoutParams.MATCH_PARENT
         val focusable = true
         val popupWindow = PopupWindow(popupView, width, height, focusable)
-
         val handler = Handler(Looper.getMainLooper())
+        // Set to dismiss after 2 seconds
         val myRunnable = Runnable {
             Log.e("GHX", "Runnable EXECUTED")
             popupWindow.dismiss()
         }
         handler.postDelayed(myRunnable, 2000)
-
+        // if dismissed manually existing auto dismiss is removed to save performance
         popupWindow.setOnDismissListener {
             handler.removeCallbacksAndMessages(null)
         }
-
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
+        // Make the popup dismissible by touch
         popupView.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -289,7 +445,13 @@ class GameActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Create and show the 'Incorrect' popup. Then dismiss it after 2 seconds
+     *
+     * @param view view from button click which is used to attach the popupWindow
+     */
     private fun showIncorrect(view: View) {
+        totIncorrect += 1
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val popupView: View = inflater.inflate(R.layout.incorrect_feedback, null)
         val width = LinearLayout.LayoutParams.MATCH_PARENT
@@ -305,6 +467,16 @@ class GameActivity : AppCompatActivity() {
         popupWindow.setOnDismissListener {
             handler.removeCallbacksAndMessages(null)
         }
+        val solution = when {
+            (leftEquation!!.total > rightEquation!!.total) -> "GREATER"
+            (leftEquation!!.total < rightEquation!!.total) -> "LESS"
+            else -> "=="
+        }
+        popupWindow.contentView.findViewById<TextView>(R.id.correct_answer).text = solution
+        popupWindow.contentView.findViewById<TextView>(R.id.left_eq).text = leftEquation!!.equation
+        popupWindow.contentView.findViewById<TextView>(R.id.left_val).text = leftEquation!!.total.toString()
+        popupWindow.contentView.findViewById<TextView>(R.id.right_eq).text = rightEquation!!.equation
+        popupWindow.contentView.findViewById<TextView>(R.id.right_val).text = rightEquation!!.total.toString()
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
         popupView.setOnTouchListener { v, event ->
             when (event.action) {
@@ -315,6 +487,19 @@ class GameActivity : AppCompatActivity() {
             popupWindow.dismiss()
             true
         }
+    }
+
+    /**
+     * Called when the timer comes to 0.
+     * Start a new activity with results from this activity. As this activity is defined as
+     * 'android:noHistory="true"' new activity becomes the immediate successor of the MainActivity.
+     * Hence this activity will be inaccessible from the new activity via back button
+     */
+    private fun showResults() {
+        val intent = Intent(this, SummaryActivity::class.java)
+        intent.putExtra(correctTotConst, totCorrect)
+        intent.putExtra(incorrectTotConst, totIncorrect)
+        startActivity(intent)
     }
 
 }

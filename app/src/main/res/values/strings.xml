@@ -20,4 +20,9 @@
     <string name="incorrect">INCORRECT</string>
     <string name="correct_answer">correct answer is</string>
     <string name="equals">equals</string>
+    <string name="times_up">Time\'s up!</string>
+    <string name="tot_correct">Correct answers</string>
+    <string name="tot_wrong">Wrong answers</string>
+    <string name="spacer"> - </string>
+    <string name="tip">press back to return to menu</string>
 </resources>

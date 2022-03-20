@@ -16,28 +16,26 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    /**
+     * Called when new game button is tapped
+     */
     fun startGame(view: View) {
         val intent = Intent(this, GameActivity::class.java)
         startActivity(intent)
     }
 
+    /**
+     * Called when about button is tapped
+     */
     fun openAboutPopUp(view: View) {
-
-        // inflate the layout of the popup window
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val popupView: View = inflater.inflate(R.layout.about_popup, null)
-
-        // create the popup window
         val width = LinearLayout.LayoutParams.MATCH_PARENT
         val height = LinearLayout.LayoutParams.MATCH_PARENT
-        val focusable = true // lets taps outside the popup also dismiss it
+        val focusable = true
         val popupWindow = PopupWindow(popupView, width, height, focusable)
-
-        // show the popup window
-        // which view you pass in doesn't matter, it is only used for the window token
         popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0)
-
-        // dismiss the popup window when touched
+        // Dismiss the popup when touched
         popupView.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -47,7 +45,6 @@ class MainActivity : AppCompatActivity() {
             popupWindow.dismiss()
             true
         }
-
     }
 
 }

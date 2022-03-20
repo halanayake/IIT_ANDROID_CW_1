@@ -7,6 +7,17 @@
         android:orientation="vertical"
         android:padding="20dp"
         tools:context=".GameActivity">
+    <TextView
+            android:id="@+id/time"
+            android:layout_width="150dp"
+            android:layout_height="50dp"
+            android:layout_marginBottom="-50dp"
+            android:layout_gravity="end"
+            android:text=""
+            android:textColor="@color/black"
+            android:textStyle="normal|bold"
+            android:textAlignment="viewEnd"
+            android:autoSizeTextType="uniform"/>
     <Space
             android:layout_width="wrap_content"
             android:layout_height="0dp"
