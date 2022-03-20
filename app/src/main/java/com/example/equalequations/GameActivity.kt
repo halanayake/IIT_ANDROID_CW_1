@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -14,6 +13,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 
@@ -63,6 +63,7 @@ class GameActivity : AppCompatActivity() {
         }
         // Time left is calculated by subtracting current time from future time.
         // This way timer will not freeze when activity gets paused
+        // References - https://developer.android.com/reference/android/os/CountDownTimer
         timeLeft = targetTime!! - Calendar.getInstance().timeInMillis
         timer = object : CountDownTimer(timeLeft!!, 1000) {
             override fun onTick(millisUntilFinished: Long) {
@@ -83,6 +84,8 @@ class GameActivity : AppCompatActivity() {
 
     /**
      * Save attributes that needs to be persisted through activity lifecycles
+     *
+     * References - https://developer.android.com/guide/components/activities/activity-lifecycle
      */
     override fun onSaveInstanceState(state: Bundle) {
         super.onSaveInstanceState(state)
@@ -120,23 +123,28 @@ class GameActivity : AppCompatActivity() {
      * @param savedInstanceState to load saved values (if available)
      */
     private fun generateAndAssignEquations(savedInstanceState: Bundle?) {
-        val tempLeftEq = savedInstanceState?.getString(leftEqConst)
-        val tempLeftVal = savedInstanceState?.getInt(leftValConst)
-        leftEquation = if (tempLeftEq != null && tempLeftVal != null) {
-            DataObj(tempLeftEq, tempLeftVal)
-        } else {
-            generateEquation()
-        }
-        findViewById<TextView>(R.id.leftEquation).text = leftEquation!!.equation
+        try {
+            val tempLeftEq = savedInstanceState?.getString(leftEqConst)
+            val tempLeftVal = savedInstanceState?.getInt(leftValConst)
+            leftEquation = if (tempLeftEq != null && tempLeftVal != null) {
+                DataObj(tempLeftEq, tempLeftVal)
+            } else {
+                generateEquation()
+            }
+            findViewById<TextView>(R.id.leftEquation).text = leftEquation!!.equation
 
-        val tempRightEq = savedInstanceState?.getString(rightEqConst)
-        val tempRightVal = savedInstanceState?.getInt(rightValConst)
-        rightEquation = if (tempRightEq != null && tempRightVal != null) {
-            DataObj(tempRightEq, tempRightVal)
-        } else {
-            generateEquation()
+            val tempRightEq = savedInstanceState?.getString(rightEqConst)
+            val tempRightVal = savedInstanceState?.getInt(rightValConst)
+            rightEquation = if (tempRightEq != null && tempRightVal != null) {
+                DataObj(tempRightEq, tempRightVal)
+            } else {
+                generateEquation()
+            }
+            findViewById<TextView>(R.id.rightEquation).text = rightEquation!!.equation
+        } catch (ignore:Exception) {
+            Toast.makeText(this, "Recovered from an error", Toast.LENGTH_SHORT).show()
+            generateAndAssignEquations(savedInstanceState)
         }
-        findViewById<TextView>(R.id.rightEquation).text = rightEquation!!.equation
     }
 
     /**
@@ -199,20 +207,36 @@ class GameActivity : AppCompatActivity() {
      * @param operators selected operators
      */
     private fun fixSubtraction(numbers: MutableList<Int>, operators: MutableList<Char>) {
-        val maxPos = numbers.indexOf(numbers.maxOrNull()!!)
-        val opIndex = operators.indexOf('-')
-        val tempVal1 = numbers[opIndex]
-        numbers[opIndex] = numbers[maxPos]
-        numbers[maxPos] = tempVal1
-        val tempVal2 = numbers[opIndex+1]
-        var secondMaxPos = numbers.lastIndex
-        for ((index, num) in numbers.withIndex()) {
-            if (num > numbers[secondMaxPos] && index != opIndex) {
-                secondMaxPos = index
+        if (operators.contains('/') || operators.contains('*')) {
+            val max = numbers.maxOrNull()!!
+            numbers.remove(max)
+            operators.remove('-')
+            var secondMax = 0
+            for (num in numbers) {
+                if (num > secondMax) {
+                    secondMax = num
+                }
             }
+            numbers.remove(secondMax)
+            numbers.add(0, max)
+            numbers.add(1, secondMax)
+            operators.add(0, '-')
+        } else {
+            val maxPos = numbers.indexOf(numbers.maxOrNull()!!)
+            val opIndex = operators.indexOf('-')
+            val tempVal1 = numbers[opIndex]
+            numbers[opIndex] = numbers[maxPos]
+            numbers[maxPos] = tempVal1
+            val tempVal2 = numbers[opIndex+1]
+            var secondMaxPos = numbers.lastIndex
+            for ((index, num) in numbers.withIndex()) {
+                if (num > numbers[secondMaxPos] && index != opIndex) {
+                    secondMaxPos = index
+                }
+            }
+            numbers[opIndex+1] = numbers[secondMaxPos]
+            numbers[secondMaxPos] = tempVal2
         }
-        numbers[opIndex+1] = numbers[secondMaxPos]
-        numbers[secondMaxPos] = tempVal2
     }
 
     /**
@@ -223,7 +247,7 @@ class GameActivity : AppCompatActivity() {
      * @param operators selected operators
      */
     private fun fixDivision(numbers: MutableList<Int>, operators: MutableList<Char>) {
-        val min: Int = numbers.minOrNull()!!
+        var min: Int = numbers.minOrNull()!!
         val opIndex = operators.indexOf('/')
         val tempVal = numbers[opIndex+1]
         numbers[numbers.indexOf(min)] = tempVal
@@ -231,8 +255,8 @@ class GameActivity : AppCompatActivity() {
         // Only left side operators and numbers are considered
         val validOperators = operators.subList(0, opIndex)
         val validNumbers = numbers.subList(0, opIndex+1)
-        val leftResult = solveEquation(validNumbers, validOperators)
-        val mod = leftResult % min
+        var leftResult = solveEquation(validNumbers, validOperators)
+        var mod = leftResult % min
         // if remainder is 0 no calculations are performed
         if (mod == 0) {
             return
@@ -246,9 +270,13 @@ class GameActivity : AppCompatActivity() {
             fixEquation(numbers, operators)
         } else {
             while (true) {
+                min = numbers.minOrNull()!!
+                leftResult = solveEquation(validNumbers, validOperators)
+                mod = leftResult % min
                 var found = false
                 for ((index, num) in validNumbers.withIndex()) {
-                    if ((num - mod) >= 1 && (validOperators.size != index && validOperators[index] != '-')) {
+                    if ((num - mod) >= 1 && (validOperators.size== 0
+                                || (validOperators.size != index && validOperators[index] != '-'))) {
                         numbers[numbers.indexOf(num)] = (num - mod)
                         found = true
                         break
@@ -260,16 +288,22 @@ class GameActivity : AppCompatActivity() {
                     }
                 }
                 if (found) {
+                    // Recursive call. If numbers are correct doesn't loop
+                    fixEquation(numbers, operators)
                     break
                 } else {
                     val subtractPos = validOperators.indexOf('-')
                     if (subtractPos != -1) {
                         numbers[subtractPos] = (10..20).random()
                         numbers[subtractPos+1] = (1..numbers[subtractPos]).random()
+                        fixEquation(numbers, operators)
+                        break
                     } else {
-                        for ((index, num) in numbers.withIndex()) {
+                        for ((index, num) in validNumbers.withIndex()) {
                             numbers[index] = (1..20).random()
                         }
+                        fixEquation(numbers, operators)
+                        break
                     }
                 }
             }
@@ -310,7 +344,6 @@ class GameActivity : AppCompatActivity() {
     private fun solveEquationAndResolve(numbers: MutableList<Int>, operators: MutableList<Char>): Int {
         var total = 0
         var flag: Boolean
-        Log.e("GHX", "$numbers || $operators")
         while (true) {
             flag = true
             for ((count, number) in numbers.withIndex()) {
@@ -319,7 +352,7 @@ class GameActivity : AppCompatActivity() {
                 } else {
                     when (operators[count - 1]) {
                         '+' -> {
-                            if ((total + number) > 100) {
+                            if ((total + number) >= 100) {
                                 numbers[numbers.indexOf(number)] =  (1..(100-total)).random()
                                 flag = false
                                 fixEquation(numbers, operators)
@@ -329,8 +362,7 @@ class GameActivity : AppCompatActivity() {
                         }
                         '-' -> total -= number
                         '*' -> {
-                            Log.e("GHX", "$total | $number -|- $numbers || $operators")
-                            if ((total * number) > 100) {
+                            if ((total * number) >= 100) {
                                 if ((100/total) == 0) {
                                     numbers[numbers.indexOf(number)] =  1
                                 } else {
@@ -424,7 +456,6 @@ class GameActivity : AppCompatActivity() {
         val handler = Handler(Looper.getMainLooper())
         // Set to dismiss after 2 seconds
         val myRunnable = Runnable {
-            Log.e("GHX", "Runnable EXECUTED")
             popupWindow.dismiss()
         }
         handler.postDelayed(myRunnable, 2000)
@@ -460,7 +491,6 @@ class GameActivity : AppCompatActivity() {
         val popupWindow = PopupWindow(popupView, width, height, focusable)
         val handler = Handler(Looper.getMainLooper())
         val myRunnable = Runnable {
-            Log.e("GHX", "Runnable EXECUTED")
             popupWindow.dismiss()
         }
         handler.postDelayed(myRunnable, 2000)

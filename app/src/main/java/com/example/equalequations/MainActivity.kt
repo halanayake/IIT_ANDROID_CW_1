@@ -26,6 +26,8 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * Called when about button is tapped
+     *
+     * References - https://developer.android.com/reference/android/widget/PopupWindow.html
      */
     fun openAboutPopUp(view: View) {
         val inflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater

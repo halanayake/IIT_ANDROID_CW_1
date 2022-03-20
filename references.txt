@@ -1,4 +1,0 @@
-https://stackoverflow.com/questions/5944987/how-to-create-a-popup-window-popupwindow-in-android
-https://developer.android.com/reference/android/widget/PopupWindow.html
-
-
