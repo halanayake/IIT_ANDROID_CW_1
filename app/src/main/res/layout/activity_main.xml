@@ -7,7 +7,7 @@
         android:gravity="center"
         android:orientation="vertical"
         android:padding="10dp"
-        android:background="@drawable/background"
+        android:background="@drawable/game_background"
         tools:context=".MainActivity">
 
     <TextView
@@ -17,7 +17,6 @@
             android:textSize="40sp"
             android:textColor="@color/black"
             android:textStyle="normal|bold"
-            android:background="@color/white_transparent"
             android:paddingHorizontal="5dp"
             android:textAlignment="center" />
 
