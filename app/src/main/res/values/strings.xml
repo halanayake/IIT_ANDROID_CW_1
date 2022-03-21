@@ -16,8 +16,8 @@
     <string name="equal">==</string>
     <string name="less">LESS</string>
 
-    <string name="correct">CORRECT</string>
-    <string name="incorrect">INCORRECT</string>
+    <string name="correct">CORRECT!</string>
+    <string name="incorrect">WRONG!</string>
     <string name="correct_answer">correct answer is</string>
     <string name="equals">equals</string>
     <string name="times_up">Time\'s up!</string>
@@ -25,4 +25,5 @@
     <string name="tot_wrong">Wrong answers</string>
     <string name="spacer"> - </string>
     <string name="tip">press back to return to menu</string>
+    <string name="dismissTip">tap to dismiss</string>
 </resources>

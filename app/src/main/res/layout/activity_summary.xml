@@ -16,7 +16,7 @@
                 android:layout_height="wrap_content"
                 app:srcCompat="@drawable/ic_baseline_timer_70"
                 app:tint="@color/black"
-                android:contentDescription="@string/correct" />
+                android:contentDescription="@string/times_up" />
 
         <TextView
                 android:layout_marginTop="10dp"

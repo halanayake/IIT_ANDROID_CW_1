@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -141,7 +142,8 @@ class GameActivity : AppCompatActivity() {
                 generateEquation()
             }
             findViewById<TextView>(R.id.rightEquation).text = rightEquation!!.equation
-        } catch (ignore:Exception) {
+        } catch (e:Exception) {
+            Log.e("ERROR", e.stackTraceToString())
             Toast.makeText(this, "Recovered from an error", Toast.LENGTH_SHORT).show()
             generateAndAssignEquations(savedInstanceState)
         }
@@ -493,7 +495,7 @@ class GameActivity : AppCompatActivity() {
         val myRunnable = Runnable {
             popupWindow.dismiss()
         }
-        handler.postDelayed(myRunnable, 2000)
+        handler.postDelayed(myRunnable, 3000)
         popupWindow.setOnDismissListener {
             handler.removeCallbacksAndMessages(null)
         }
