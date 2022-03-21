@@ -354,7 +354,7 @@ class GameActivity : AppCompatActivity() {
                 } else {
                     when (operators[count - 1]) {
                         '+' -> {
-                            if ((total + number) >= 100) {
+                            if ((total + number) >= 100 && (100-total) > 0) {
                                 numbers[numbers.indexOf(number)] =  (1..(100-total)).random()
                                 flag = false
                                 fixEquation(numbers, operators)
